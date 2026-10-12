@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acortador de URLs</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: flex; gap: .5rem; }
+    input { flex: 1; padding: .5rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+    td, th { border-bottom: 1px solid #ddd; padding: .4rem; text-align: left; word-break: break-all; }
+    .error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Acortador de URLs</h1>
+  <form id="formulario">
+    <input id="url" type="url" placeholder="https://ejemplo.com/una/ruta/muy/larga" required>
+    <button>Acortar</button>
+  </form>
+  <p id="mensaje"></p>
+  <table>
+    <thead><tr><th>Enlace corto</th><th>Destino</th><th>Visitas</th></tr></thead>
+    <tbody id="lista"></tbody>
+  </table>
+  <script>
+    const lista = document.getElementById('lista');
+    const mensaje = document.getElementById('mensaje');
+
+    async function cargar() {
+      const enlaces = await (await fetch('/api/enlaces')).json();
+      lista.replaceChildren(...enlaces.map(e => {
+        const fila = document.createElement('tr');
+        const corto = `${location.origin}/r/${e.codigo}`;
+        fila.innerHTML = `<td><a href="/r/${e.codigo}" target="_blank"></a></td><td></td><td>${e.visitas}</td>`;
+        fila.querySelector('a').textContent = corto;
+        fila.children[1].textContent = e.destino;
+        return fila;
+      }));
+    }
+
+    document.getElementById('formulario').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const res = await fetch('/api/enlaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: document.getElementById('url').value })
+      });
+      const datos = await res.json();
+      mensaje.className = res.ok ? '' : 'error';
+      mensaje.textContent = res.ok ? `Creado: ${location.origin}/r/${datos.codigo}` : datos.error;
+      cargar();
+    });
+
+    cargar();
+  </script>
+</body>
+</html>
